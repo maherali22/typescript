@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Airplane Game</title>
+  <style>
+    * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(to bottom, #87CEEB, #1E90FF);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            background: url('/api/placeholder/800/600') center/cover;
+            border: 3px solid #333;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+        }
+        
+        #airplane {
+            position: absolute;
+            width: 60px;
+            height: 30px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 30'%3E%3Cpath d='M60 15 L45 5 L30 5 L20 0 L20 30 L30 25 L45 25 Z' fill='%23ff4500'/%3E%3Ccircle cx='25' cy='15' r='5' fill='%23fff'/%3E%3C/svg%3E");
+            z-index: 10;
+        }
+        
+        .cloud {
+            position: absolute;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 50'%3E%3Cpath d='M90 35 C95 25 90 15 80 15 C75 5 65 5 60 10 C50 0 35 5 30 15 C20 15 10 20 15 35 C15 45 30 50 50 50 C65 50 85 50 90 35 Z' fill='%23fff' fill-opacity='0.8'/%3E%3C/svg%3E");
+            width: 100px;
+            height: 50px;
+            z-index: 1;
+        }
+        
+        .obstacle {
+            position: absolute;
+            background-color: #333;
+            z-index: 5;
+        }
+        
+        .coin {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Ccircle cx='10' cy='10' r='9' fill='%23FFD700' stroke='%23B8860B' stroke-width='1'/%3E%3Ctext x='10' y='14' text-anchor='middle' font-family='Arial' font-size='12' fill='%23B8860B'%3E%24%3C/text%3E%3C/svg%3E");
+            border-radius: 50%;
+            z-index: 5;
+        }
+        
+        #score-container {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 18px;
+            z-index: 20;
+        }
+        
+        #life-container {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 18px;
+            z-index: 20;
+        }
+        
+        .heart {
+            color: red;
+            margin-left: 2px;
+        }
+        
+        #game-over, #start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            color: white;
+        }
+        
+        #game-over h1, #start-screen h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        #final-score {
+            font-size: 24px;
+            margin-bottom: 30px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        #controls {
+            margin-top: 20px;
+            text-align: center;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            width: 800px;
+        }
+
+        /* Responsive styles */
+        @media (max-width: 820px) {
+            #game-container {
+                width: 95vw;
+                height: calc(95vw * 0.75);
+            }
+            
+            #controls {
+                width: 95vw;
+            }
+        }
+        
+        /* Mobile adjustments */
+        @media (max-width: 600px) {
+            #airplane {
+                width: 40px;
+                height: 20px;
+            }
+            
+            .cloud {
+                width: 60px;
+                height: 30px;
+            }
+        }
+        
+        /* Explosion animation */
+        @keyframes explosion {
+            0% { transform: scale(0); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0.8; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+        
+        .explosion {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(circle, #ff4500, #ff0000);
+            border-radius: 50%;
+            animation: explosion 0.5s forwards;
+            z-index: 15;
+        }
+        
+        /* Coin collection animation */
+        @keyframes collect {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0.5; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+        
+        .collecting {
+            animation: collect 0.3s forwards;
+        }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <div id="airplane"></div>
+    <div id="score-container">Score: <span id="score">0</span></div>
+    <div id="life-container">Lives: <span id="lives"></span></div>
+    
+    <div id="start-screen">
+      <h1>Airplane Adventure</h1>
+      <p>Use arrow keys or WASD to control the airplane</p>
+      <p>Collect coins and avoid obstacles</p>
+      <button id="start-button">Start Game</button>
+    </div>
+    
+    <div id="game-over" style="display: none;">
+      <h1>Game Over</h1>
+      <div id="final-score">Score: 0</div>
+      <button id="restart-button">Play Again</button>
+    </div>
+  </div>
+  
+  <div id="controls">
+    <p>Controls: Arrow Keys or WASD to move | P to pause</p>
+  </div>
+  
+  <script>
+    // Game variables
+    const airplane = document.getElementById('airplane');
+    const gameContainer = document.getElementById('game-container');
+    const scoreElement = document.getElementById('score');
+    const livesElement = document.getElementById('lives');
+    const gameOverScreen = document.getElementById('game-over');
+    const startScreen = document.getElementById('start-screen');
+    const finalScoreElement = document.getElementById('final-score');
+    const startButton = document.getElementById('start-button');
+    const restartButton = document.getElementById('restart-button');
+    
+    let gameWidth = gameContainer.offsetWidth;
+    let gameHeight = gameContainer.offsetHeight;
+    let planeWidth = 60;
+    let planeHeight = 30;
+    let planeX = 50;
+    let planeY = gameHeight / 2;
+    const planeSpeed = 5;
+    
+    let score = 0;
+    let lives = 3;
+    let gameRunning = false;
+    let paused = false;
+    let invulnerable = false;
+    
+    let obstacles = [];
+    let coins = [];
+    let clouds = [];
+    let keysPressed = {};
+    
+    let lastTime = 0;
+    let obstacleTimer = 0;
+    let coinTimer = 0;
+    let cloudTimer = 0;
+    
+    // Clear dynamic game elements from previous sessions
+    function clearGameElements() {
+      obstacles.forEach(el => el.remove());
+      coins.forEach(el => el.remove());
+      clouds.forEach(el => el.remove());
+      obstacles = [];
+      coins = [];
+      clouds = [];
+    }
+    
+    // Initialize game
+    function initGame() {
+      clearGameElements();
+      // Reset variables
+      score = 0;
+      lives = 3;
+      keysPressed = {};
+      invulnerable = false;
+      
+      // Update dimensions in case of window resize
+      gameWidth = gameContainer.offsetWidth;
+      gameHeight = gameContainer.offsetHeight;
+      planeWidth = gameWidth * 0.075;
+      planeHeight = planeWidth / 2;
+      airplane.style.width = planeWidth + 'px';
+      airplane.style.height = planeHeight + 'px';
+      
+      // Reset airplane position
+      planeX = 50;
+      planeY = gameHeight / 2;
+      updateAirplanePosition();
+      
+      // Update score and lives display
+      scoreElement.textContent = score;
+      updateLivesDisplay();
+      
+      // Generate initial clouds
+      generateInitialClouds();
+      
+      // Reset timers
+      lastTime = performance.now();
+      obstacleTimer = 0;
+      coinTimer = 0;
+      cloudTimer = 0;
+      
+      // Start game loop
+      gameRunning = true;
+      requestAnimationFrame(gameLoop);
+    }
+    
+    // Update airplane position
+    function updateAirplanePosition() {
+      airplane.style.left = planeX + 'px';
+      airplane.style.top = planeY + 'px';
+    }
+    
+    // Update lives display
+    function updateLivesDisplay() {
+      livesElement.innerHTML = '';
+      for (let i = 0; i < lives; i++) {
+        livesElement.innerHTML += '<span class="heart">❤</span>';
+      }
+    }
+    
+    // Generate initial clouds
+    function generateInitialClouds() {
+      for (let i = 0; i < 5; i++) {
+        createCloud();
+      }
+    }
+    
+    // Create a cloud
+    function createCloud() {
+      const cloud = document.createElement('div');
+      cloud.className = 'cloud';
+      const cloudSize = Math.random() * 50 + 50;
+      cloud.style.width = cloudSize + 'px';
+      cloud.style.height = cloudSize / 2 + 'px';
+      cloud.style.left = gameWidth + 'px';
+      cloud.style.top = Math.random() * gameHeight + 'px';
+      cloud.speed = Math.random() * 2 + 1;
+      cloud.style.opacity = Math.random() * 0.5 + 0.3;
+      gameContainer.appendChild(cloud);
+      clouds.push(cloud);
+    }
+    
+    // Create an obstacle
+    function createObstacle() {
+      const obstacle = document.createElement('div');
+      obstacle.className = 'obstacle';
+      
+      const isVertical = Math.random() > 0.5;
+      
+      if (isVertical) {
+        const height = Math.random() * (gameHeight / 2) + 100;
+        const top = Math.random() > 0.5 ? 0 : gameHeight - height;
+        obstacle.style.width = '30px';
+        obstacle.style.height = height + 'px';
+        obstacle.style.left = gameWidth + 'px';
+        obstacle.style.top = top + 'px';
+      } else {
+        const width = 30;
+        const height = Math.random() * 120 + 80;
+        const gap = Math.random() * 200 + 150;
+        const top = Math.random() * (gameHeight - gap - height * 2) + height;
+        // Top part
+        obstacle.style.width = width + 'px';
+        obstacle.style.height = top - height + 'px';
+        obstacle.style.left = gameWidth + 'px';
+        obstacle.style.top = '0px';
+        // Bottom part
+        const bottomPart = document.createElement('div');
+        bottomPart.className = 'obstacle';
+        bottomPart.style.width = width + 'px';
+        bottomPart.style.height = gameHeight - top - gap + 'px';
+        bottomPart.style.left = gameWidth + 'px';
+        bottomPart.style.top = (top + gap) + 'px';
+        gameContainer.appendChild(bottomPart);
+        obstacles.push(bottomPart);
+      }
+      
+      obstacle.speed = 3;
+      gameContainer.appendChild(obstacle);
+      obstacles.push(obstacle);
+    }
+    
+    // Create a coin
+    function createCoin() {
+      const coin = document.createElement('div');
+      coin.className = 'coin';
+      coin.style.left = gameWidth + 'px';
+      let validPosition = false;
+      let coinY;
+      
+      while (!validPosition) {
+        coinY = Math.random() * (gameHeight - 40) + 20;
+        validPosition = true;
+        for (let obstacle of obstacles) {
+          const obstacleLeft = parseInt(obstacle.style.left);
+          const obstacleTop = parseInt(obstacle.style.top);
+          const obstacleHeight = parseInt(obstacle.style.height);
+          if (
+            Math.abs(obstacleLeft - gameWidth) < 100 &&
+            coinY > obstacleTop - 30 &&
+            coinY < obstacleTop + obstacleHeight + 10
+          ) {
+            validPosition = false;
+            break;
+          }
+        }
+      }
+      
+      coin.style.top = coinY + 'px';
+      coin.speed = 3;
+      gameContainer.appendChild(coin);
+      coins.push(coin);
+    }
+    
+    // Move all game elements
+    function moveElements() {
+      // Move clouds
+      for (let i = clouds.length - 1; i >= 0; i--) {
+        const cloud = clouds[i];
+        const cloudLeft = parseInt(cloud.style.left) - cloud.speed;
+        if (cloudLeft + parseInt(cloud.style.width) < 0) {
+          cloud.remove();
+          clouds.splice(i, 1);
+        } else {
+          cloud.style.left = cloudLeft + 'px';
+        }
+      }
+      
+      // Move obstacles
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        const obstacle = obstacles[i];
+        const obstacleLeft = parseInt(obstacle.style.left) - obstacle.speed;
+        if (obstacleLeft + parseInt(obstacle.style.width) < 0) {
+          obstacle.remove();
+          obstacles.splice(i, 1);
+        } else {
+          obstacle.style.left = obstacleLeft + 'px';
+        }
+      }
+      
+      // Move coins
+      for (let i = coins.length - 1; i >= 0; i--) {
+        const coin = coins[i];
+        const coinLeft = parseInt(coin.style.left) - coin.speed;
+        if (coinLeft + parseInt(coin.style.width) < 0) {
+          coin.remove();
+          coins.splice(i, 1);
+        } else {
+          coin.style.left = coinLeft + 'px';
+        }
+      }
+    }
+    
+    // Check rectangle collision
+    function checkRectCollision(rect1, rect2) {
+      return (
+        rect1.x < rect2.x + rect2.width &&
+        rect1.x + rect1.width > rect2.x &&
+        rect1.y < rect2.y + rect2.height &&
+        rect1.y + rect1.height > rect2.y
+      );
+    }
+    
+    // Create explosion effect
+    function createExplosion(x, y) {
+      const explosion = document.createElement('div');
+      explosion.className = 'explosion';
+      explosion.style.left = (x - 25) + 'px';
+      explosion.style.top = (y - 25) + 'px';
+      gameContainer.appendChild(explosion);
+      setTimeout(() => explosion.remove(), 500);
+    }
+    
+    // Check collisions with obstacles and coins
+    function checkCollisions() {
+      const planeRect = { x: planeX, y: planeY, width: planeWidth, height: planeHeight };
+      
+      // Check obstacle collisions (only process if not invulnerable)
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        const obstacle = obstacles[i];
+        const obstacleRect = {
+          x: parseInt(obstacle.style.left),
+          y: parseInt(obstacle.style.top),
+          width: parseInt(obstacle.style.width),
+          height: parseInt(obstacle.style.height)
+        };
+        if (checkRectCollision(planeRect, obstacleRect) && !invulnerable) {
+          invulnerable = true;
+          createExplosion(planeX + planeWidth / 2, planeY + planeHeight / 2);
+          lives--;
+          updateLivesDisplay();
+          
+          if (lives <= 0) {
+            endGame();
+          } else {
+            // Flash airplane and reset position
+            airplane.style.opacity = 0.5;
+            setTimeout(() => {
+              airplane.style.opacity = 1;
+              invulnerable = false;
+            }, 1500);
+            planeX = 50;
+            planeY = gameHeight / 2;
+            updateAirplanePosition();
+          }
+          break;
+        }
+      }
+      
+      // Check coin collisions
+      for (let i = coins.length - 1; i >= 0; i--) {
+        const coin = coins[i];
+        const coinRect = {
+          x: parseInt(coin.style.left),
+          y: parseInt(coin.style.top),
+          width: 20,
+          height: 20
+        };
+        if (checkRectCollision(planeRect, coinRect)) {
+          score += 10;
+          scoreElement.textContent = score;
+          coin.classList.add('collecting');
+          setTimeout(() => {
+            coin.remove();
+            coins.splice(i, 1);
+          }, 300);
+        }
+      }
+    }
+    
+    // Handle keyboard input for airplane movement
+    function handleInput() {
+      if (keysPressed['ArrowUp'] || keysPressed['w'] || keysPressed['W']) planeY -= planeSpeed;
+      if (keysPressed['ArrowDown'] || keysPressed['s'] || keysPressed['S']) planeY += planeSpeed;
+      if (keysPressed['ArrowLeft'] || keysPressed['a'] || keysPressed['A']) planeX -= planeSpeed;
+      if (keysPressed['ArrowRight'] || keysPressed['d'] || keysPressed['D']) planeX += planeSpeed;
+      
+      // Keep airplane within boundaries
+      planeX = Math.max(0, Math.min(planeX, gameWidth - planeWidth));
+      planeY = Math.max(0, Math.min(planeY, gameHeight - planeHeight));
+      updateAirplanePosition();
+    }
+    
+    // Main game loop
+    function gameLoop(timestamp) {
+      if (!gameRunning || paused) return;
+      const deltaTime = timestamp - lastTime;
+      lastTime = timestamp;
+      
+      obstacleTimer += deltaTime;
+      coinTimer += deltaTime;
+      cloudTimer += deltaTime;
+      
+      if (obstacleTimer > 2000) { createObstacle(); obstacleTimer = 0; }
+      if (coinTimer > 1000) { createCoin(); coinTimer = 0; }
+      if (cloudTimer > 3000) { createCloud(); cloudTimer = 0; }
+      
+      handleInput();
+      moveElements();
+      checkCollisions();
+      
+      requestAnimationFrame(gameLoop);
+    }
+    
+    // End game
+    function endGame() {
+      gameRunning = false;
+      finalScoreElement.textContent = 'Score: ' + score;
+      gameOverScreen.style.display = 'flex';
+    }
+    
+    // Event listeners
+    startButton.addEventListener('click', function() {
+      startScreen.style.display = 'none';
+      initGame();
+    });
+    
+    restartButton.addEventListener('click', function() {
+      gameOverScreen.style.display = 'none';
+      initGame();
+    });
+    
+    document.addEventListener('keydown', function(e) {
+      keysPressed[e.key] = true;
+      if (e.key === 'p' || e.key === 'P') {
+        paused = !paused;
+        if (!paused && gameRunning) {
+          // Reset timer on resume to avoid large deltaTime
+          lastTime = performance.now();
+          requestAnimationFrame(gameLoop);
+        }
+      }
+    });
+    
+    document.addEventListener('keyup', function(e) {
+      delete keysPressed[e.key];
+    });
+    
+    // Handle window resize
+    window.addEventListener('resize', function() {
+      if (gameRunning) {
+        gameWidth = gameContainer.offsetWidth;
+        gameHeight = gameContainer.offsetHeight;
+        planeWidth = gameWidth * 0.075;
+        planeHeight = planeWidth / 2;
+        airplane.style.width = planeWidth + 'px';
+        airplane.style.height = planeHeight + 'px';
+        planeX = Math.min(planeX, gameWidth - planeWidth);
+        planeY = Math.min(planeY, gameHeight - planeHeight);
+        updateAirplanePosition();
+      }
+    });
+    
+    // Mobile touch controls
+    let touchStartX = 0;
+    let touchStartY = 0;
+    gameContainer.addEventListener('touchstart', function(e) {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+      e.preventDefault();
+    }, { passive: false });
+    
+    gameContainer.addEventListener('touchmove', function(e) {
+      if (!gameRunning || paused) return;
+      const touchX = e.touches[0].clientX;
+      const touchY = e.touches[0].clientY;
+      planeX += (touchX - touchStartX) * 0.5;
+      planeY += (touchY - touchStartY) * 0.5;
+      planeX = Math.max(0, Math.min(planeX, gameWidth - planeWidth));
+      planeY = Math.max(0, Math.min(planeY, gameHeight - planeHeight));
+      updateAirplanePosition();
+      touchStartX = touchX;
+      touchStartY = touchY;
+      e.preventDefault();
+    }, { passive: false });
+  </script>
+</body>
+</html>

@@ -71,6 +71,8 @@ let person3: User3 ={
   // salary:30_000
 }
 
+//function
+
 function add(a: number, b: number): number {
   return a + b;
 }
